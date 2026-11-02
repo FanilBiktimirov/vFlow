@@ -63,8 +63,14 @@ class ExecutionHandler(
             return rateLimitResponse(rateLimitResult)
         }
 
-        val request = parseRequestBody(session, ExecuteWorkflowRequest::class.java)
-            ?: ExecuteWorkflowRequest()
+        // 没有请求体时使用默认值；请求体无法解析时报错，而不是静默按默认值执行
+        val body = readBody(session)
+        val request = if (body.isNullOrBlank()) {
+            ExecuteWorkflowRequest()
+        } else {
+            runCatching { gson.fromJson(body, ExecuteWorkflowRequest::class.java) }.getOrNull()
+                ?: return errorResponse(400, "Invalid request body")
+        }
 
         try {
             val detail = deps.executionManager.executeWorkflow(

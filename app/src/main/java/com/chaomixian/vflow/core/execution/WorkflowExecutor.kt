@@ -53,8 +53,8 @@ object WorkflowExecutor {
     private val runningWorkflows = ConcurrentHashMap<String, MutableList<ActiveExecution>>()
     // 用于标记工作流是否被 Stop 信号正常终止
     private val stoppedWorkflows = ConcurrentHashMap<String, Boolean>()
-    // 用于标记某次执行是否已通过失败分支完成收尾，避免 finally 再次广播结束态
-    private val failedExecutions = ConcurrentHashMap<String, Boolean>()
+    // 用于标记某次执行是否已通过失败分支完成收尾（值为错误信息），避免 finally 再次广播结束态
+    private val failedExecutions = ConcurrentHashMap<String, String>()
 
     // 用于存储每个正在运行的工作流的详细日志
     private val executionLogs = ConcurrentHashMap<String, StringBuilder>()
@@ -124,22 +124,45 @@ object WorkflowExecutor {
     }
 
     /**
+     * 停止某一次具体的执行，不影响同一工作流的其他并行执行。
+     * @param workflowId 工作流ID。
+     * @param executionInstanceId execute 返回的执行实例ID。
+     */
+    fun stopExecutionInstance(workflowId: String, executionInstanceId: String) {
+        runningWorkflows[workflowId]?.toList()
+            ?.firstOrNull { it.instanceId == executionInstanceId }
+            ?.job?.cancel()
+    }
+
+    /**
      * 执行一个工作流。这是最外层的入口点。
      * @param workflow 要执行的工作流。
      * @param context Android 上下文。
      * @param triggerData (可选) 触发器传入的外部数据。
+     * @param initialNamedVariables (可选) 预置的命名变量，执行开始前放入 namedVariables。
+     * @param completion (可选) 执行结束时以最终状态和命名变量完成，用于等待执行结束。
+     * @return 执行实例ID；因重入策略被拒绝时返回空字符串。
      */
     fun execute(
         workflow: Workflow,
         context: Context,
         triggerData: Parcelable? = null,
-        triggerStepId: String? = null
+        triggerStepId: String? = null,
+        initialNamedVariables: Map<String, VObject>? = null,
+        completion: CompletableDeferred<WorkflowRunResult>? = null
     ): String {
         when (workflow.reentryBehavior) {
             WorkflowReentryBehavior.BLOCK_NEW -> {
                 if (isRunning(workflow.id)) {
                     GlobalDebugLogger.w("WorkflowExecutor", "工作流 '${workflow.name}' 已在运行，忽略新的执行请求。")
                     addReentryLog(workflow, LogMessageKey.REENTRY_BLOCKED_NEW_EXECUTION)
+                    completion?.complete(
+                        WorkflowRunResult(
+                            status = WorkflowRunResult.Status.FAILED,
+                            namedVariables = initialNamedVariables.orEmpty(),
+                            errorMessage = "Workflow is already running, new execution was blocked"
+                        )
+                    )
                     return ""
                 }
             }
@@ -172,6 +195,10 @@ object WorkflowExecutor {
         }
 
         val executionInstanceId = "${workflow.id}_${UUID.randomUUID()}"
+        // 命名变量在 launch 之外创建，以便结束时（包括异常兜底）都能取到最终值
+        val namedVariables = ConcurrentHashMap<String, VObject>().apply {
+            initialNamedVariables?.let { putAll(it) }
+        }
         val job = executorScope.launch {
             // 将 workflow.id 注入到当前协程及其子协程的上下文中
             // 这样，在此作用域内调用的所有本地 DebugLogger 方法都能通过 ThreadLocal 获取到 ID
@@ -194,6 +221,7 @@ object WorkflowExecutor {
                 if (!workDir.exists()) workDir.mkdirs()
 
                 var isTimeout = false
+                var uncaughtError: Exception? = null
 
                 try {
                     // 创建并注册执行期间所需的服务
@@ -212,7 +240,7 @@ object WorkflowExecutor {
                         stepOutputs = mutableMapOf(),
                         loopStack = Stack(),
                         triggerData = triggerData,
-                        namedVariables = ConcurrentHashMap<String, VObject>(),
+                        namedVariables = namedVariables,
                         workflowStack = Stack<String>().apply { push(workflow.id) },
                         workDir = workDir
                     )
@@ -259,6 +287,7 @@ object WorkflowExecutor {
                         ExecutionNotificationManager.updateState(workflow, ExecutionNotificationState.Cancelled("已停止"))
                     }
                 } catch (e: Exception) {
+                    uncaughtError = e
                     DebugLogger.e("WorkflowExecutor", "主工作流 '${workflow.name}' 执行时发生未捕获的异常。", e)
                     ExecutionNotificationManager.updateState(workflow, ExecutionNotificationState.Cancelled("执行异常"))
                 } finally {
@@ -281,7 +310,8 @@ object WorkflowExecutor {
 
                         // 广播最终状态
                         val wasStopped = stoppedWorkflows[executionInstanceId] == true
-                        val wasFailureHandled = failedExecutions.remove(executionInstanceId) == true
+                        val failureMessage = failedExecutions.remove(executionInstanceId)
+                        val wasFailureHandled = failureMessage != null
                         // 如果协程不再活跃且不是因为“停止工作流”模块导致的，则视为手动取消
                         val wasCancelled = isCoroutineCancelled && !wasStopped
 
@@ -323,6 +353,28 @@ object WorkflowExecutor {
                             }
                             DebugLogger.d("WorkflowExecutor", "主工作流 '${workflow.name}' 执行完毕。")
                         }
+
+                        // 在通知延迟之前交出结果，等待方不必多等 3 秒
+                        val error = uncaughtError
+                        completion?.complete(
+                            when {
+                                wasFailureHandled -> WorkflowRunResult(
+                                    WorkflowRunResult.Status.FAILED, HashMap(namedVariables), failureMessage
+                                )
+                                error != null -> WorkflowRunResult(
+                                    WorkflowRunResult.Status.FAILED,
+                                    HashMap(namedVariables),
+                                    formatExecutionExceptionMessage(error, "执行异常")
+                                )
+                                isTimeout -> WorkflowRunResult(
+                                    WorkflowRunResult.Status.TIMEOUT,
+                                    HashMap(namedVariables),
+                                    "Workflow exceeded its max execution time (${workflow.maxExecutionTime}s)"
+                                )
+                                wasCancelled -> WorkflowRunResult(WorkflowRunResult.Status.CANCELLED, HashMap(namedVariables))
+                                else -> WorkflowRunResult(WorkflowRunResult.Status.COMPLETED, HashMap(namedVariables))
+                            }
+                        )
                         // 延迟后取消通知，给用户时间查看最终状态
                         delay(3000)
                         ExecutionNotificationManager.cancelNotification()
@@ -331,6 +383,23 @@ object WorkflowExecutor {
             }
         }
         registerExecution(workflow.id, executionInstanceId, job)
+        // 兜底：若协程在进入 try 之前就结束（如启动前被取消），保证等待方不会一直挂起
+        completion?.let { deferred ->
+            job.invokeOnCompletion { cause ->
+                deferred.complete(
+                    WorkflowRunResult(
+                        status = when (cause) {
+                            null -> WorkflowRunResult.Status.COMPLETED
+                            is CancellationException -> WorkflowRunResult.Status.CANCELLED
+                            else -> WorkflowRunResult.Status.FAILED
+                        },
+                        namedVariables = HashMap(namedVariables),
+                        errorMessage = cause?.takeUnless { it is CancellationException }
+                            ?.let { formatExecutionExceptionMessage(it, "执行异常") }
+                    )
+                )
+            }
+        }
         return executionInstanceId
     }
 
@@ -663,7 +732,7 @@ object WorkflowExecutor {
                         val fullLog = executionLogs[initialContext.workflowStack.first()]?.toString() ?: ""
 
                         val hasActiveExecutions = unregisterExecution(workflow.id, executionInstanceId)
-                        failedExecutions[executionInstanceId] = true
+                        failedExecutions[executionInstanceId] = "${result.errorTitle}: ${result.errorMessage}"
                         stoppedWorkflows.remove(executionInstanceId)
                         if (!hasActiveExecutions) {
                             executionLogs.remove(workflow.id)

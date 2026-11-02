@@ -3,7 +3,6 @@ package com.chaomixian.vflow.api.handler
 import com.chaomixian.vflow.api.auth.RateLimiter
 import com.google.gson.Gson
 import fi.iki.elonen.NanoHTTPD
-import java.io.BufferedReader
 
 /**
  * 基础Handler
@@ -19,11 +18,18 @@ abstract class BaseHandler(
      */
     protected fun readBody(session: NanoHTTPD.IHTTPSession): String? {
         return try {
+            // content-length 是字节数，必须按字节读取，再按 UTF-8 解码（否则非 ASCII 字符会读错长度）
             val contentLength = session.headers["content-length"]?.toIntOrNull() ?: return null
-            val buffer = CharArray(contentLength)
-            val reader = BufferedReader(session.inputStream.reader())
-            reader.read(buffer)
-            String(buffer)
+            if (contentLength <= 0) return ""
+            val buffer = ByteArray(contentLength)
+            val input = session.inputStream
+            var read = 0
+            while (read < contentLength) {
+                val n = input.read(buffer, read, contentLength - read)
+                if (n < 0) break
+                read += n
+            }
+            String(buffer, 0, read, Charsets.UTF_8)
         } catch (e: Exception) {
             null
         }
