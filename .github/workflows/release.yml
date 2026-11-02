@@ -94,7 +94,7 @@ jobs:
           RELEASE_KEYSTORE_ALIAS: ${{ secrets.KEYSTORE_ALIAS }}
           RELEASE_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
-          if [[ ! -f vFlow.jks || ! -f signing.properties ]]; then
+          if [[ $GITHUB_REPOSITORY != ChaoMixian/vFlow || ! -f vFlow.jks || ! -f signing.properties ]]; then
             echo "enabled=false" >> "${GITHUB_OUTPUT}"
             echo "Release signing inputs are incomplete; skipping rotated APK generation."
             exit 0
