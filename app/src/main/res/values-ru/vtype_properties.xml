@@ -1,0 +1,105 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <!-- Basic Type Properties -->
+    <string name="vtype_number_int">Целая часть</string>
+    <string name="vtype_number_round">Округление</string>
+    <string name="vtype_number_abs">Абсолютное значение</string>
+    <string name="vtype_boolean_not">Инверсия</string>
+    <string name="vtype_string_length">Длина</string>
+    <string name="vtype_string_uppercase">Верхний регистр</string>
+    <string name="vtype_string_lowercase">Нижний регистр</string>
+    <string name="vtype_string_trim">Без пробелов по краям</string>
+    <string name="vtype_string_remove_spaces">Без всех пробелов</string>
+    <string name="vtype_string_isempty">Пусто</string>
+    <!-- Collection Type Properties -->
+    <string name="vtype_list_count">Количество</string>
+    <string name="vtype_list_first">Первый элемент</string>
+    <string name="vtype_list_last">Последний элемент</string>
+    <string name="vtype_list_isempty">Пусто</string>
+    <string name="vtype_list_random">Случайный элемент</string>
+    <string name="vtype_dict_count">Количество</string>
+    <string name="vtype_dict_keys">Все ключи</string>
+    <string name="vtype_dict_values">Все значения</string>
+    <!-- Complex Type Properties -->
+    <string name="vtype_image_width">Ширина</string>
+    <string name="vtype_image_height">Высота</string>
+    <string name="vtype_image_path">Путь к файлу</string>
+    <string name="vtype_image_uri">URI</string>
+    <string name="vtype_image_size">Размер файла</string>
+    <string name="vtype_image_name">Имя файла</string>
+    <string name="vtype_image_base64">В кодировке Base64</string>
+    <string name="vtype_file_path">Путь к файлу</string>
+    <string name="vtype_file_uri">URI</string>
+    <string name="vtype_file_name">Имя файла</string>
+    <string name="vtype_file_extension">Расширение</string>
+    <string name="vtype_file_mime_type">MIME-тип</string>
+    <string name="vtype_file_size">Размер файла</string>
+    <string name="vtype_file_base64">В кодировке Base64</string>
+    <string name="vtype_file_content">Текстовое содержимое</string>
+    <string name="vtype_date_year">Год</string>
+    <string name="vtype_date_month">Месяц</string>
+    <string name="vtype_date_day">День</string>
+    <string name="vtype_date_weekday">День недели (1-7)</string>
+    <string name="vtype_date_timestamp">Метка времени</string>
+    <string name="vtype_time_hour">Час</string>
+    <string name="vtype_time_minute">Минута</string>
+    <!-- Screen Element Properties -->
+    <string name="vtype_screen_element_text">Текст</string>
+    <string name="vtype_screen_element_content_description">Описание содержимого</string>
+    <string name="vtype_screen_element_all_texts">Все тексты</string>
+    <string name="vtype_screen_element_id">ID элемента</string>
+    <string name="vtype_screen_element_class">Имя класса</string>
+    <string name="vtype_screen_element_center">Центральная точка</string>
+    <string name="vtype_screen_element_region">Область</string>
+    <string name="vtype_screen_element_center_x">Центр X</string>
+    <string name="vtype_screen_element_center_y">Центр Y</string>
+    <string name="vtype_screen_element_left">Слева</string>
+    <string name="vtype_screen_element_top">Сверху</string>
+    <string name="vtype_screen_element_right">Справа</string>
+    <string name="vtype_screen_element_bottom">Снизу</string>
+    <string name="vtype_screen_element_width">Ширина</string>
+    <string name="vtype_screen_element_height">Высота</string>
+    <string name="vtype_screen_element_clickable">Нажимаемый</string>
+    <string name="vtype_screen_element_enabled">Включён</string>
+    <string name="vtype_screen_element_checkable">Можно отметить</string>
+    <string name="vtype_screen_element_checked">Отмечен</string>
+    <string name="vtype_screen_element_editable">Редактируемый</string>
+    <!-- UI Component Properties -->
+    <string name="vtype_uicomponent_id">ID компонента</string>
+    <string name="vtype_uicomponent_type">Тип</string>
+    <string name="vtype_uicomponent_label">Подпись</string>
+    <string name="vtype_uicomponent_value">Значение</string>
+    <string name="vtype_uicomponent_defaultvalue">Значение по умолчанию</string>
+    <string name="vtype_uicomponent_placeholder">Подсказка в поле</string>
+    <string name="vtype_uicomponent_required">Обязательное</string>
+    <string name="vtype_uicomponent_triggerEvent">Событие-триггер</string>
+    <string name="vtype_uicomponent_istext">Это текст</string>
+    <string name="vtype_uicomponent_isbutton">Это кнопка</string>
+    <string name="vtype_uicomponent_isinput">Это поле ввода</string>
+    <string name="vtype_uicomponent_isswitch">Это переключатель</string>
+    <string name="vtype_uicomponent_ispicker">Это выбор из списка</string>
+    <string name="vtype_uicomponent_options">Варианты</string>
+    <!-- Coordinate Properties -->
+    <string name="vtype_coordinate_x">Координата X</string>
+    <string name="vtype_coordinate_y">Координата Y</string>
+    <!-- Coordinate Region Properties -->
+    <string name="vtype_coord_region_left">Слева</string>
+    <string name="vtype_coord_region_top">Сверху</string>
+    <string name="vtype_coord_region_right">Справа</string>
+    <string name="vtype_coord_region_bottom">Снизу</string>
+    <string name="vtype_coord_region_width">Ширина</string>
+    <string name="vtype_coord_region_height">Высота</string>
+    <string name="vtype_coord_region_center">Центральная точка</string>
+    <string name="vtype_coord_region_center_x">Центр X</string>
+    <string name="vtype_coord_region_center_y">Центр Y</string>
+    <!-- Notification Properties -->
+    <string name="vtype_notification_title">Заголовок</string>
+    <string name="vtype_notification_content">Содержимое</string>
+    <string name="vtype_notification_package">Имя пакета</string>
+    <string name="vtype_notification_id">ID уведомления</string>
+    <!-- UI Event Properties -->
+    <string name="vtype_event_session_id">ID сеанса</string>
+    <string name="vtype_event_element_id">ID компонента</string>
+    <string name="vtype_event_type">Тип события</string>
+    <string name="vtype_event_value">Значение события</string>
+</resources>

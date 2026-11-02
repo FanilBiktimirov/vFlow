@@ -29,7 +29,8 @@ object LocaleManager {
     val SUPPORTED_LANGUAGES = mapOf(
         "zh" to "中文（简体）",
         "en" to "English",
-        "ja" to "日本語"
+        "ja" to "日本語",
+        "ru" to "Русский"
     )
 
     /**
@@ -37,6 +38,7 @@ object LocaleManager {
      *
      * 如果用户没有手动设置过语言（首次启动），则根据系统语言自动选择：
      * - 系统语言是中文（简体/繁体）时使用 "zh"
+     * - 系统语言在 SUPPORTED_LANGUAGES 中时使用该语言
      * - 其他情况使用 "en"
      *
      * @param context Android上下文
@@ -51,10 +53,11 @@ object LocaleManager {
             savedLanguage
         } else {
             // 首次启动，根据系统语言自动选择
-            if (isSystemLanguageChinese()) {
-                "zh"
-            } else {
-                "en"
+            val systemLanguage = Locale.getDefault().language
+            when {
+                isSystemLanguageChinese() -> "zh"
+                systemLanguage in SUPPORTED_LANGUAGES -> systemLanguage
+                else -> "en"
             }
         }
     }
